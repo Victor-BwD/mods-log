@@ -19,7 +19,7 @@ class ModRegister(FileSystemEventHandler):
         super().__init__()
         self.debounce_interval = debounce_interval
         self.pending_events = {} # dictionary
-        self.timer = None
+        self.timer = None # timer to avoid multiple events in short time
         self.lock = Lock()  # avoid race condition
 
     def is_valid_mod(self, file_path):
@@ -29,7 +29,7 @@ class ModRegister(FileSystemEventHandler):
             return False
         return ext in MOD_EXTENSIONS
 
-    def schedule_update(self): # call process_pending_events() to process events in dictionary after debounce_interval
+    def schedule_update(self): # when a event is created call process_pending_events() to process events in dictionary after debounce_interval
         with self.lock:
             if self.timer:
                 self.timer.cancel()
@@ -48,21 +48,21 @@ class ModRegister(FileSystemEventHandler):
             self.pending_events.clear()
             self.timer = None
 
-    def on_created(self, event):
+    def on_created(self, event): # event
         if not event.is_directory and self.is_valid_mod(event.src_path):
             mod = os.path.basename(event.src_path)
             with self.lock:
                 self.pending_events[mod] = 'added'
             self.schedule_update()
 
-    def on_deleted(self, event):
+    def on_deleted(self, event): # event
         if not event.is_directory and self.is_valid_mod(event.src_path):
             mod = os.path.basename(event.src_path)
             with self.lock:
                 self.pending_events[mod] = 'removed'
             self.schedule_update()
 
-mods_path = r"G:\mods"  # Altere para o caminho da pasta de mods
+mods_path = r"G:\mods"  # change to your mods folder
 
 observer = Observer()
 event_handler = ModRegister(debounce_interval=2)
