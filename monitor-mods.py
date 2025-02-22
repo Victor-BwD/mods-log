@@ -1,6 +1,7 @@
 import time
 import os
 import logging
+import configparser
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 from threading import Timer, Lock
@@ -13,6 +14,7 @@ logging.basicConfig(
 )
 
 MOD_EXTENSIONS = {'.esp', '.esm', '.bsa', '.ba2', '.pak', '.jar'}
+CONFIG_FILE = 'config.ini'
 
 class ModRegister(FileSystemEventHandler):
     def __init__(self, debounce_interval=2):
@@ -62,7 +64,25 @@ class ModRegister(FileSystemEventHandler):
                 self.pending_events[mod] = 'removed'
             self.schedule_update()
 
-mods_path = r"G:\mods"  # change to your mods folder
+def get_mods_path():
+    config = configparser.ConfigParser()
+    
+    if os.path.exists(CONFIG_FILE):
+        config.read(CONFIG_FILE)
+        if 'DEFAULT' in config and 'mods_path' in config['DEFAULT']:
+            return config['DEFAULT']['mods_path']
+    
+    while True:
+        path = input("Por favor, digite o caminho da pasta de mods: ").strip()
+        if os.path.isdir(path):
+            # Salva no arquivo de configuração
+            config['DEFAULT'] = {'mods_path': path}
+            with open(CONFIG_FILE, 'w') as configfile:
+                config.write(configfile)
+            return path
+        print(f"Erro: O caminho '{path}' não existe ou não é uma pasta válida!")
+
+mods_path = get_mods_path()
 
 observer = Observer()
 event_handler = ModRegister(debounce_interval=2)
